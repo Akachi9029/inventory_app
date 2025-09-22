@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>今治市消防本部救急資器材管理</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+        nav a { margin: 0 15px; text-decoration: none; font-weight: bold; color: #007BFF; }
+        nav a:hover { text-decoration: underline; }
+        table { margin: 20px auto; border-collapse: collapse; width: 60%; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>今治市消防本部救急資器材管理</h1>
+    <nav>
+        <a href="/">トップ</a>
+        <a href="/inventory">在庫</a>
+        <a href="/incoming">入庫</a>
+        <a href="/outgoing">出庫</a>
+        <a href="/request">物品要求</a>
+        
+    </nav>
+    <hr>
+    {% block content %}{% endblock %}
+</body>
+</html>

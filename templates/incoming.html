@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>入庫ページ</h2>
+<form method="POST">
+    <label>名前: <input type="text" name="name" required></label><br><br>
+    <label>署所:
+        <select name="station" required>
+            {% for s in stations %}
+                <option value="{{ s }}">{{ s }}</option>
+            {% endfor %}
+        </select>
+    </label><br><br>
+
+    {% for i in range(1, 11) %}
+        <label>資器材 {{ i }}:
+            <select name="item{{ i }}">
+                <option value="">選択してください</option>
+                {% for item in items %}
+                    <option value="{{ item.name }}">{{ item.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>数量: <input type="number" name="qty{{ i }}" min="0"></label><br><br>
+    {% endfor %}
+
+    <button type="submit">登録</button>
+</form>
+{% endblock %}
