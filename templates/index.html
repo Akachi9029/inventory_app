@@ -1,23 +1,40 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>在庫一覧</h2>
-<p><strong>総在庫数: {{ total }}</strong></p>
-<table>
-    <tr>
-        <th>資器材名</th>
-        <th>数量</th>
-        <th>物品要求</th>
-    </tr>
-    {% for item in items %}
-    <tr>
-        <td>{{ item.name }}</td>
-        <td>{{ item.quantity }}</td>
-        <td>
-            {% for req in item.requests %}
-                {{ req.date.strftime('%m/%d') }}: {{ req.quantity }}<br>
-            {% endfor %}
+<div class="text-center mb-4">
+  <h2 class="fw-bold text-primary">在庫一覧</h2>
+  <p class="fs-5"><strong>総在庫数: <span class="text-success">{{ total }}</span></strong></p>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-bordered table-striped align-middle shadow-sm">
+    <thead class="table-primary text-center">
+      <tr>
+        <th scope="col">資器材名</th>
+        <th scope="col">数量</th>
+        <th scope="col">物品要求</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td class="fw-semibold">{{ item.name }}</td>
+        <td class="text-center">
+          <span class="badge bg-success fs-6">{{ item.quantity }}</span>
         </td>
-    </tr>
-    {% endfor %}
-</table>
+        <td>
+          {% if item.requests %}
+            {% for req in item.requests %}
+              <span class="badge bg-info text-dark mb-1">
+                {{ req.date.strftime('%m/%d') }}: {{ req.quantity }}
+              </span><br>
+            {% endfor %}
+          {% else %}
+            <span class="text-muted">なし</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}

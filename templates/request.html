@@ -1,57 +1,72 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<title>物品要求</title>
-</head>
-<body>
-<h1>物品要求</h1>
-<{% extends "base.html" %}
+{% extends "base.html" %}
 {% block content %}
-<h2>物品要求ページ</h2>
-<form method="POST">
-    <label>名前: <input type="text" name="name" required></label><br><br>
-    <label>署所:
-        <select name="station" required>
-            {% for s in stations %}
-                <option value="{{ s }}">{{ s }}</option>
-            {% endfor %}
-        </select>
-    </label><br><br>
+<div class="container my-4">
+    <h2 class="text-center text-primary fw-bold mb-4">物品要求ページ</h2>
 
-    {% for i in range(1, 11) %}
-        <label>資器材 {{ i }}:
-            <select name="item{{ i }}">
-                <option value="">選択してください</option>
-                {% for item in items %}
-                    <option value="{{ item.name }}">{{ item.name }}</option>
+    <form method="POST" class="mb-5">
+        <div class="mb-3">
+            <label class="form-label">名前</label>
+            <input type="text" name="name" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">署所</label>
+            <select name="station" class="form-select" required>
+                {% for s in stations %}
+                    <option value="{{ s }}">{{ s }}</option>
                 {% endfor %}
             </select>
-        </label>
-        <label>数量: <input type="number" name="qty{{ i }}" min="0"></label><br><br>
-    {% endfor %}
+        </div>
 
-    <button type="submit">登録</button>
-</form>
+        {% for i in range(1, 11) %}
+        <div class="row mb-3 align-items-center">
+            <div class="col-7 col-sm-8">
+                <label class="form-label">資器材 {{ i }}</label>
+                <select name="item{{ i }}" class="form-select">
+                    <option value="">選択してください</option>
+                    {% for item in items %}
+                        <option value="{{ item.name }}">{{ item.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-5 col-sm-4">
+                <label class="form-label">数量</label>
+                <input type="number" name="qty{{ i }}" class="form-control" min="0">
+            </div>
+        </div>
+        {% endfor %}
 
-<hr>
-<h3>これまでの要求</h3>
-<table>
-    <tr>
-        <th>日付</th>
-        <th>名前</th>
-        <th>署所</th>
-        <th>資器材</th>
-        <th>数量</th>
-    </tr>
-    {% for r in requests %}
-    <tr>
-        <td>{{ r.date.strftime('%m/%d') }}</td>
-        <td>{{ r.name }}</td>
-        <td>{{ r.station }}</td>
-        <td>{{ r.item_name }}</td>
-        <td>{{ r.quantity }}</td>
-    </tr>
-    {% endfor %}
-</table>
+        <div class="text-center">
+            <button type="submit" class="btn btn-success btn-lg">登録</button>
+        </div>
+    </form>
+
+    <hr>
+
+    <h3 class="text-success mb-3">これまでの要求</h3>
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped text-center">
+            <thead class="table-primary">
+                <tr>
+                    <th>日付</th>
+                    <th>名前</th>
+                    <th>署所</th>
+                    <th>資器材</th>
+                    <th>数量</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in requests %}
+                <tr>
+                    <td>{{ r.date.strftime('%m/%d') }}</td>
+                    <td>{{ r.name }}</td>
+                    <td>{{ r.station }}</td>
+                    <td>{{ r.item_name }}</td>
+                    <td>{{ r.quantity }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

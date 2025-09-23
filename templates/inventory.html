@@ -1,16 +1,32 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>在庫一覧</h2>
-<table class="table table-bordered">
-    <tr><th>ID</th><th>物品名</th><th>数量</th><th>要求</th></tr>
-    {% for item in items %}
-    <tr>
-        <td>{{ item.id }}</td>
-        <td>{{ item.name }}</td>
-        <td>{{ item.quantity }}</td>
-        <td>{{ item.requests or "-" }}</td>
-    </tr>
-    {% endfor %}
-</table>
-{% endblock %}
+<div class="container my-4">
+    <h2 class="text-center text-primary fw-bold mb-3">在庫一覧</h2>
+    <p class="text-center text-success"><strong>総在庫数: {{ total }}</strong></p>
 
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped text-center">
+            <thead class="table-primary">
+                <tr>
+                    <th>資器材名</th>
+                    <th>数量</th>
+                    <th>物品要求</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>
+                        {% for req in item.requests %}
+                            <span class="badge bg-success mb-1">{{ req.date.strftime('%m/%d') }}: {{ req.quantity }}</span><br>
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
