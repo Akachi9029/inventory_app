@@ -14,7 +14,6 @@ class Item(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     quantity = db.Column(db.Integer, default=0)
-    expiry = db.Column(db.String(20))  # 期限または物品要求欄
 
 class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -64,7 +63,16 @@ def index():
 def inventory():
     items = Item.query.all()
     total_quantity = sum(item.quantity for item in items)
-    return render_template('inventory.html', items=items, total_quantity=total_quantity)
+
+    # アイテムごとの要求を取得
+    item_requests = {}
+    requests_data = Transaction.query.filter_by(type='request').all()
+    for r in requests_data:
+        if r.item_name not in item_requests:
+            item_requests[r.item_name] = []
+        item_requests[r.item_name].append(r)
+
+    return render_template('inventory.html', items=items, total_quantity=total_quantity, item_requests=item_requests)
 
 # 入庫ページ
 @app.route('/incoming', methods=['GET', 'POST'])
@@ -78,9 +86,23 @@ def incoming():
             qty = request.form.get(f'qty{i}')
             if item_name and qty:
                 qty = int(qty)
+                # 入庫トランザクション
                 db.session.add(Transaction(type='inbound', name=name, station=station, item_name=item_name, quantity=qty))
+                
+                # 在庫数増加
                 item = Item.query.filter_by(name=item_name).first()
                 item.quantity += qty
+
+                # 物品要求の消化
+                reqs = Transaction.query.filter_by(type='request', item_name=item_name).order_by(Transaction.date).all()
+                for r in reqs:
+                    if qty >= r.quantity:
+                        qty -= r.quantity
+                        db.session.delete(r)
+                    else:
+                        r.quantity -= qty
+                        qty = 0
+                        break
         db.session.commit()
         return redirect(url_for('incoming'))
     return render_template('incoming.html', items=items, stations=stations)
@@ -97,7 +119,9 @@ def outgoing():
             qty = request.form.get(f'qty{i}')
             if item_name and qty:
                 qty = int(qty)
+                # 出庫トランザクション
                 db.session.add(Transaction(type='outbound', name=name, station=station, item_name=item_name, quantity=qty))
+                # 在庫数減少
                 item = Item.query.filter_by(name=item_name).first()
                 item.quantity -= qty
         db.session.commit()
