@@ -1,40 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="text-center mb-4">
-  <h2 class="fw-bold text-primary">在庫一覧</h2>
-  <p class="fs-5"><strong>総在庫数: <span class="text-success">{{ total }}</span></strong></p>
-</div>
+<div class="container my-5 text-center">
+    <h1 class="fw-bold text-primary mb-4">今治市消防本部救急資器材管理システム</h1>
+    
+    <p class="fs-5">
+        このシステムでは、救急資器材の在庫管理、入庫・出庫の登録、物品要求の管理を簡単に行うことができます。
+    </p>
+    
+    <p class="fs-5">
+        下のボタンから各ページに移動して操作してください。
+    </p>
 
-<div class="table-responsive">
-  <table class="table table-bordered table-striped align-middle shadow-sm">
-    <thead class="table-primary text-center">
-      <tr>
-        <th scope="col">資器材名</th>
-        <th scope="col">数量</th>
-        <th scope="col">物品要求</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in items %}
-      <tr>
-        <td class="fw-semibold">{{ item.name }}</td>
-        <td class="text-center">
-          <span class="badge bg-success fs-6">{{ item.quantity }}</span>
-        </td>
-        <td>
-          {% if item.requests %}
-            {% for req in item.requests %}
-              <span class="badge bg-info text-dark mb-1">
-                {{ req.date.strftime('%m/%d') }}: {{ req.quantity }}
-              </span><br>
-            {% endfor %}
-          {% else %}
-            <span class="text-muted">なし</span>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+    <div class="mt-4">
+        <a href="/inventory" class="btn btn-primary btn-lg mx-2">在庫一覧</a>
+        <a href="/incoming" class="btn btn-success btn-lg mx-2">入庫登録</a>
+        <a href="/outgoing" class="btn btn-danger btn-lg mx-2">出庫登録</a>
+        <a href="/request" class="btn btn-info btn-lg mx-2">物品要求</a>
+    </div>
 </div>
 {% endblock %}
