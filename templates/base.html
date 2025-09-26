@@ -65,6 +65,12 @@
           <li class="nav-item"><a class="nav-link" href="/incoming">入庫</a></li>
           <li class="nav-item"><a class="nav-link" href="/outgoing">出庫</a></li>
           <li class="nav-item"><a class="nav-link" href="/request">物品要求</a></li>
+          {% if session.get('logged_in') %}
+            <li class="nav-item"><a class="nav-link" href="/minimum">最低在庫設定</a></li>
+            <li class="nav-item"><a class="nav-link" href="/logout">ログアウト</a></li>
+          {% else %}
+            <li class="nav-item"><a class="nav-link" href="/login">管理者ログイン</a></li>
+          {% endif %}
         </ul>
       </div>
     </div>

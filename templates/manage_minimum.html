@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container my-4">
+    <h2 class="text-center text-primary">最低数 管理画面</h2>
+    <form method="POST">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>資器材名</th>
+                    <th>最低数</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ item.name }}</td>
+                    <td>
+                        <input type="number" name="minimum_{{ item.id }}" value="{{ item.minimum }}" class="form-control">
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="text-center">
+            <button type="submit" class="btn btn-success">保存</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
