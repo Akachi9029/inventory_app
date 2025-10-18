@@ -9,8 +9,10 @@ app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
 
 # ---------- Google Sheets セットアップ ----------
 SERVICE_ACCOUNT_FILE = "shikizai-management-c2a08e32d3fd.json"
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets",
-          "https://www.googleapis.com/auth/drive"]
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
 
 credentials = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 gc = gspread.authorize(credentials)
@@ -41,18 +43,28 @@ def get_items():
             })
     return items
 
-def update_item(name, quantity=None, minimum=None):
-    records = inventory_sheet.get_all_records()
-    for idx, r in enumerate(records, start=2):  # ヘッダ行を除く
-        if r.get("name") == name:
-            try:
-                if quantity is not None:
-                    inventory_sheet.update(f'B{idx}', quantity)
-                if minimum is not None:
-                    inventory_sheet.update(f'C{idx}', minimum)
-            except gspread.exceptions.APIError as e:
-                print("Inventory update APIError:", e)
-            break
+
+def update_item(name, quantity_change=0, minimum=None):
+    try:
+        cell = inventory_sheet.find(name)
+        row = cell.row
+
+        # 現在の数量を取得
+        current_quantity = int(inventory_sheet.cell(row, 2).value or 0)
+
+        # 入庫/出庫を反映
+        new_quantity = current_quantity + quantity_change
+        inventory_sheet.update_cell(row, 2, new_quantity)
+
+        # 最低在庫も更新（指定がある場合）
+        if minimum is not None:
+            inventory_sheet.update_cell(row, 3, minimum)
+
+    except gspread.exceptions.CellNotFound:
+        # 物品が存在しない場合は新規追加
+        new_row = [name, quantity_change if quantity_change is not None else 0, minimum if minimum is not None else 0]
+        inventory_sheet.append_row(new_row)
+
 
 def get_transactions(tx_type=None):
     records = transactions_sheet.get_all_records()
@@ -60,17 +72,16 @@ def get_transactions(tx_type=None):
         return [r for r in records if r["type"] == tx_type]
     return records
 
+
 def add_transaction(tx_type, name, station, item_name, quantity):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    try:
-        transactions_sheet.append_row([tx_type, name, station, item_name, quantity, now])
-    except gspread.exceptions.APIError as e:
-        print("Transaction APIError:", e)
+    transactions_sheet.append_row([tx_type, name, station, item_name, quantity, now])
 
 # ---------- ルーティング ----------
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 @app.route('/inventory')
 def inventory():
@@ -80,6 +91,7 @@ def inventory():
     for req in requests:
         item_requests.setdefault(req["item_name"], []).append(req)
     return render_template('inventory.html', items=items, item_requests=item_requests)
+
 
 @app.route('/incoming', methods=['GET', 'POST'])
 def incoming():
@@ -93,11 +105,10 @@ def incoming():
             if item_name and qty:
                 qty = int(qty)
                 add_transaction("inbound", name, station, item_name, qty)
-                item = next((x for x in items if x["name"] == item_name), None)
-                if item:
-                    update_item(item_name, quantity=item["quantity"] + qty)
+                update_item(item_name, quantity_change=qty)
         return render_template('complete.html', message="入庫処理が完了しました")
     return render_template('incoming.html', items=items, stations=stations)
+
 
 @app.route('/outgoing', methods=['GET', 'POST'])
 def outgoing():
@@ -111,11 +122,10 @@ def outgoing():
             if item_name and qty:
                 qty = int(qty)
                 add_transaction("outbound", name, station, item_name, qty)
-                item = next((x for x in items if x["name"] == item_name), None)
-                if item:
-                    update_item(item_name, quantity=item["quantity"] - qty)
+                update_item(item_name, quantity_change=-qty)
         return render_template('complete.html', message="出庫処理が完了しました")
     return render_template('outgoing.html', items=items, stations=stations)
+
 
 @app.route('/request', methods=['GET', 'POST'])
 def request_item():
@@ -129,9 +139,10 @@ def request_item():
             if item_name and qty:
                 qty = int(qty)
                 add_transaction("request", name, station, item_name, qty)
-        return render_template('complete.html', message="物品要求が登録されました")
+        return render_template('complete.html', message="物品要求を送信しました")
     requests_data = get_transactions("request")
     return render_template('request.html', items=items, stations=stations, requests=requests_data)
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -144,10 +155,12 @@ def login():
             flash("パスワードが違います。", "danger")
     return render_template('login.html')
 
+
 @app.route('/logout')
 def logout():
     session.pop('logged_in', None)
     return redirect(url_for('inventory'))
+
 
 @app.route('/minimum', methods=['GET', 'POST'])
 def minimum():
@@ -162,6 +175,7 @@ def minimum():
         flash("最低数を更新しました。", "success")
         return redirect(url_for('minimum'))
     return render_template('minimum.html', items=items)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
