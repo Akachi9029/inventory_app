@@ -109,7 +109,6 @@ def inventory():
 @app.route('/incoming', methods=['GET', 'POST'])
 def incoming():
     items = get_items()
-    request_items = get_request_items()
     if request.method == 'POST':
         name = request.form['name']
         station = request.form['station']
@@ -121,17 +120,26 @@ def incoming():
                 add_transaction("inbound", name, station, item_name, qty)
                 update_item(item_name, quantity_change=qty)
 
-                # 物品要求を更新
-                req_item = next((r for r in request_items if r["item_name"] == item_name), None)
-                if req_item:
-                    new_qty = req_item["quantity"] - qty
-                    if new_qty <= 0:
-                        clear_request(item_name)
-                    else:
-                        update_request(item_name, new_qty)
-
+                # ---------- 追加部分: 古いrequestを消化 ----------
+                requests = get_transactions("request")
+                remaining = qty
+                for req in requests:
+                    if req["item_name"] == item_name and remaining > 0:
+                        req_qty = int(req["quantity"])
+                        if req_qty <= remaining:
+                            remaining -= req_qty
+                            # transactionsシート上でこのrequestを0に更新
+                            cell = transactions_sheet.find(str(req_qty), in_column=5)  # quantity列を検索
+                            transactions_sheet.update_cell(cell.row, cell.col, 0)
+                        else:
+                            new_qty = req_qty - remaining
+                            cell = transactions_sheet.find(str(req_qty), in_column=5)
+                            transactions_sheet.update_cell(cell.row, cell.col, new_qty)
+                            remaining = 0
+                # ---------- ここまで ----------
         return render_template('complete.html', message="入庫処理が完了しました")
     return render_template('incoming.html', items=items, stations=stations)
+
 
 @app.route('/outgoing', methods=['GET', 'POST'])
 def outgoing():
