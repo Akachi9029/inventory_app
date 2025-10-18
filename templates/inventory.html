@@ -2,6 +2,7 @@
 {% block content %}
 <h2 class="text-center mb-4">在庫一覧</h2>
 
+{% if items %}
 <div class="table-responsive">
   <table class="table table-bordered table-striped align-middle shadow-sm">
     <thead class="table-primary text-center">
@@ -23,10 +24,10 @@
           {% endif %}
         </td>
         <td>
-          {% if item.name in item_requests %}
+          {% if item_requests and item_requests.get(item.name) %}
             {% for req in item_requests[item.name] %}
               <span class="badge bg-info text-dark mb-1">
-                {{ req.date.strftime('%m/%d') }}: {{ req.quantity }}
+                {{ req.date if req.date else "" }}: {{ req.quantity }}
               </span><br>
             {% endfor %}
           {% else %}
@@ -38,4 +39,7 @@
     </tbody>
   </table>
 </div>
+{% else %}
+<p class="text-center text-muted">在庫情報はまだありません。</p>
+{% endif %}
 {% endblock %}

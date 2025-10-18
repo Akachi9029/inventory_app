@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container text-center my-5">
+    <h2>{{ message }}</h2>
+    <a href="{{ url_for('inventory') }}" class="btn btn-primary mt-4">在庫一覧に戻る</a>
+</div>
+{% endblock %}
