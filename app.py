@@ -1,12 +1,13 @@
 import os
 import json
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, session, redirect, url_for, flash
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 
 
 app = Flask(__name__)
+app.secret_key = "supersecretkey"
 
 # ---------- Google Sheets セットアップ ----------
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets",
@@ -43,28 +44,18 @@ def get_items():
             })
     return items
 
-
 def update_item(name, quantity_change=0, minimum=None):
     try:
         cell = inventory_sheet.find(name)
         row = cell.row
-
-        # 現在の数量を取得
         current_quantity = int(inventory_sheet.cell(row, 2).value or 0)
-
-        # 入庫/出庫を反映
         new_quantity = current_quantity + quantity_change
         inventory_sheet.update_cell(row, 2, new_quantity)
-
-        # 最低在庫も更新（指定がある場合）
         if minimum is not None:
             inventory_sheet.update_cell(row, 3, minimum)
-
     except gspread.exceptions.CellNotFound:
-        # 物品が存在しない場合は新規追加
         new_row = [name, quantity_change if quantity_change is not None else 0, minimum if minimum is not None else 0]
         inventory_sheet.append_row(new_row)
-
 
 def get_transactions(tx_type=None):
     records = transactions_sheet.get_all_records()
@@ -72,16 +63,39 @@ def get_transactions(tx_type=None):
         return [r for r in records if r["type"] == tx_type]
     return records
 
-
 def add_transaction(tx_type, name, station, item_name, quantity):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     transactions_sheet.append_row([tx_type, name, station, item_name, quantity, now])
+
+# ---------- 物品要求関連 ----------
+def get_request_items():
+    records = request_sheet.get_all_records()
+    items = []
+    for idx, r in enumerate(records, start=2):  # header行の次から
+        if r.get("item_name"):
+            items.append({
+                "item_name": r["item_name"],
+                "quantity": int(r.get("quantity", 0)),
+                "row": idx
+            })
+    return items
+
+def update_request(item_name, new_quantity):
+    items = get_request_items()
+    req_item = next((r for r in items if r["item_name"] == item_name), None)
+    if req_item:
+        request_sheet.update_cell(req_item["row"], 2, new_quantity)
+
+def clear_request(item_name):
+    items = get_request_items()
+    req_item = next((r for r in items if r["item_name"] == item_name), None)
+    if req_item:
+        request_sheet.delete_row(req_item["row"])
 
 # ---------- ルーティング ----------
 @app.route('/')
 def index():
     return render_template('index.html')
-
 
 @app.route('/inventory')
 def inventory():
@@ -92,10 +106,10 @@ def inventory():
         item_requests.setdefault(req["item_name"], []).append(req)
     return render_template('inventory.html', items=items, item_requests=item_requests)
 
-
 @app.route('/incoming', methods=['GET', 'POST'])
 def incoming():
     items = get_items()
+    request_items = get_request_items()
     if request.method == 'POST':
         name = request.form['name']
         station = request.form['station']
@@ -106,9 +120,18 @@ def incoming():
                 qty = int(qty)
                 add_transaction("inbound", name, station, item_name, qty)
                 update_item(item_name, quantity_change=qty)
+
+                # 物品要求を更新
+                req_item = next((r for r in request_items if r["item_name"] == item_name), None)
+                if req_item:
+                    new_qty = req_item["quantity"] - qty
+                    if new_qty <= 0:
+                        clear_request(item_name)
+                    else:
+                        update_request(item_name, new_qty)
+
         return render_template('complete.html', message="入庫処理が完了しました")
     return render_template('incoming.html', items=items, stations=stations)
-
 
 @app.route('/outgoing', methods=['GET', 'POST'])
 def outgoing():
@@ -126,7 +149,6 @@ def outgoing():
         return render_template('complete.html', message="出庫処理が完了しました")
     return render_template('outgoing.html', items=items, stations=stations)
 
-
 @app.route('/request', methods=['GET', 'POST'])
 def request_item():
     items = get_items()
@@ -143,7 +165,6 @@ def request_item():
     requests_data = get_transactions("request")
     return render_template('request.html', items=items, stations=stations, requests=requests_data)
 
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -155,12 +176,10 @@ def login():
             flash("パスワードが違います。", "danger")
     return render_template('login.html')
 
-
 @app.route('/logout')
 def logout():
     session.pop('logged_in', None)
     return redirect(url_for('inventory'))
-
 
 @app.route('/minimum', methods=['GET', 'POST'])
 def minimum():
@@ -175,7 +194,6 @@ def minimum():
         flash("最低数を更新しました。", "success")
         return redirect(url_for('minimum'))
     return render_template('minimum.html', items=items)
-
 
 if __name__ == '__main__':
     app.run(debug=True)
