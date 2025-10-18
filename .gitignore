@@ -1,0 +1,7 @@
+# 仮想環境
+.venv/
+
+# JSON 認証ファイル
+*.json
+.venv/
+*.json
