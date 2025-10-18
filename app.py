@@ -1,20 +1,18 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-from datetime import datetime
+import json
+from flask import Flask, render_template, request
 import gspread
 from google.oauth2.service_account import Credentials
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
 
 # ---------- Google Sheets セットアップ ----------
-SERVICE_ACCOUNT_FILE = "shikizai-management-c2a08e32d3fd.json"
-SCOPES = [
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive"
-]
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets",
+          "https://www.googleapis.com/auth/drive"]
 
-credentials = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+# 環境変数からサービスアカウント情報を読み込む
+service_account_info = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT"])
+credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
 gc = gspread.authorize(credentials)
 
 SPREADSHEET_NAME = "救急資器材管理DB"
