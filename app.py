@@ -103,7 +103,9 @@ def inventory():
     requests = get_transactions("request")
     item_requests = {}
     for req in requests:
-        item_requests.setdefault(req["item_name"], []).append(req)
+        # ✅ 数量が1以上の要求だけを表示
+        if int(req["quantity"]) > 0:
+            item_requests.setdefault(req["item_name"], []).append(req)
     return render_template('inventory.html', items=items, item_requests=item_requests)
 
 @app.route('/incoming', methods=['GET', 'POST'])
