@@ -108,33 +108,26 @@ def index():
 @app.route('/inventory')
 def inventory():
     items = get_items()
-    requests = get_transactions("request")
-    item_requests = {}
+    transactions = get_transactions()  # 全トランザクションを取得
+
+    # type が "request" のものだけを抽出
+    requests = [r for r in transactions if r["type"] == "request"]
+
+    # 数量1以上の要求だけを表示（0のものは非表示）
+    visible_requests = []
     for req in requests:
-        
-# 物品要求（requestタイプ）を取得
-requests = [r for r in transactions if r["type"] == "request"]
+        try:
+            if int(req["quantity"]) > 0:
+                visible_requests.append(req)
+        except Exception as e:
+            print(f"数量チェック中のエラー: {e}")
 
-# ✅ 数量が1以上の要求だけを表示（0は非表示扱い）
-visible_requests = []
-for req in requests:
-    try:
-        if int(req["quantity"]) > 0:
-            visible_requests.append(req)
-        else:
-            # スプレッドシート上は残す（削除せず非表示）
-            print(f"要求 {req['item_name']} は数量0のため非表示")
-    except Exception as e:
-        print(f"数量チェック中のエラー: {e}")
+    # item_name ごとに整形
+    item_requests = {}
+    for req in visible_requests:
+        item_requests.setdefault(req["item_name"], []).append(req)
 
-# 表示用に整形
-item_requests = {}
-for req in visible_requests:
-    item_requests.setdefault(req["item_name"], []).append(req)
-
-return render_template("inventory.html", items=items, item_requests=item_requests)
-
-
+    return render_template('inventory.html', items=items, item_requests=item_requests)
 
 
 @app.route('/incoming', methods=['GET', 'POST'])
