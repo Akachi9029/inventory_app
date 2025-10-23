@@ -113,14 +113,15 @@ def inventory():
     # type が "request" のものだけを抽出
     requests = [r for r in transactions if r["type"] == "request"]
 
-    # 数量1以上の要求だけを表示（0のものは非表示）
+    # 数量1以上の要求だけを表示（0や空は非表示）
     visible_requests = []
     for req in requests:
+        qty = req.get("quantity")
         try:
-            if int(req["quantity"]) > 0:
+            if qty is not None and qty != "" and int(qty) > 0:
                 visible_requests.append(req)
-        except Exception as e:
-            print(f"数量チェック中のエラー: {e}")
+        except ValueError:
+            print(f"数量チェック中のエラー: {req}")
 
     # item_name ごとに整形
     item_requests = {}
@@ -128,6 +129,7 @@ def inventory():
         item_requests.setdefault(req["item_name"], []).append(req)
 
     return render_template('inventory.html', items=items, item_requests=item_requests)
+
 
 
 @app.route('/incoming', methods=['GET', 'POST'])
