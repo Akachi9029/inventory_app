@@ -64,7 +64,15 @@ def get_transactions(tx_type=None):
     return records
 
 def add_transaction(tx_type, name, station, item_name, quantity):
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    from datetime import datetime, timedelta
+
+# ...省略...
+
+def add_transaction(tx_type, name, station, item_name, quantity):
+    # ✅ JST（日本時間）に補正
+    now = (datetime.utcnow() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
+    transactions_sheet.append_row([tx_type, name, station, item_name, quantity, now])
+
     transactions_sheet.append_row([tx_type, name, station, item_name, quantity, now])
 
 # ---------- 物品要求関連 ----------
@@ -103,10 +111,28 @@ def inventory():
     requests = get_transactions("request")
     item_requests = {}
     for req in requests:
-        # ✅ 数量が1以上の要求だけを表示
-        if int(req["quantity"]) > 0:
-            item_requests.setdefault(req["item_name"], []).append(req)
-    return render_template('inventory.html', items=items, item_requests=item_requests)
+        # ✅ 数量が1以上の要求だけを表示（0は非表示扱い）
+visible_requests = []
+for req in requests:
+    if int(req["quantity"]) > 0:
+        visible_requests.append(req)
+    else:
+        # 数量が0なら非表示フラグをセット（DB側にも保持）
+        db.session.execute(
+            db.text("UPDATE item_requests SET hidden = TRUE WHERE id = :id"),
+            {"id": req["id"]}
+        )
+
+item_requests = {}
+for req in visible_requests:
+    item_requests.setdefault(req["item_name"], []).append(req)
+
+return render_template('inventory.html', items=items, item_requests=item_requests)
+
+with app.app_context():
+    db.session.execute(db.text('ALTER TABLE item_requests ADD COLUMN hidden BOOLEAN DEFAULT FALSE'))
+    db.session.commit()
+
 
 @app.route('/incoming', methods=['GET', 'POST'])
 def incoming():
