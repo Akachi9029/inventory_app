@@ -109,25 +109,25 @@ def index():
 @app.route('/inventory')
 def inventory():
     items = get_items()
-    transactions = get_transactions()  # 全トランザクションを取得
+    transactions = get_transactions()  # すべてのトランザクションを取得
 
-    # type が "request" のものだけを抽出
+    # 物品要求だけ抽出
     requests = [r for r in transactions if r["type"] == "request"]
 
-    # 数量1以上の要求だけを表示（0や空は非表示）
-    visible_requests = []
+    # 表示用に quantity が残っているものだけ処理
+    visible_requests = {}
     for req in requests:
-        qty = req.get("quantity")
-        try:
-            if qty is not None and qty != "" and int(qty) > 0:
-                visible_requests.append(req)
-        except ValueError:
-            print(f"数量チェック中のエラー: {req}")
+        item = req["item_name"]
+        qty = int(req["quantity"])
+        if qty > 0:
+            if item not in visible_requests:
+                visible_requests[item] = []
+            visible_requests[item].append(req)
 
-    # item_name ごとに整形
+    # item_requests をテンプレート用に作成
     item_requests = {}
-    for req in visible_requests:
-        item_requests.setdefault(req["item_name"], []).append(req)
+    for item_name, reqs in visible_requests.items():
+        item_requests[item_name] = reqs
 
     return render_template('inventory.html', items=items, item_requests=item_requests)
 
