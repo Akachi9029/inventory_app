@@ -109,26 +109,37 @@ def index():
 @app.route('/inventory')
 def inventory():
     items = get_items()
-    transactions = get_transactions()  # すべてのトランザクションを取得
-
-    # 物品要求だけ抽出
+    transactions = get_transactions()
+    
+    # 物品要求のみ抽出
     requests = [r for r in transactions if r["type"] == "request"]
-
-    # 表示用に quantity が残っているものだけ処理
-    visible_requests = {}
+    
+    # item_name ごとに残り数量をまとめる
+    item_requests = {}
     for req in requests:
         item = req["item_name"]
         qty = int(req["quantity"])
-        if qty > 0:
-            if item not in visible_requests:
-                visible_requests[item] = []
-            visible_requests[item].append(req)
-
-    # item_requests をテンプレート用に作成
-    item_requests = {}
-    for item_name, reqs in visible_requests.items():
-        item_requests[item_name] = reqs
-
+        
+        # 現在の在庫量を取得
+        try:
+            current_stock = next(i["quantity"] for i in items if i["name"] == item)
+        except StopIteration:
+            current_stock = 0
+        
+        # 残り要求数を計算（在庫が増えれば減る）
+        remaining_qty = max(qty - current_stock, 0)
+        
+        if remaining_qty > 0:
+            if item not in item_requests:
+                item_requests[item] = []
+            # 表示用には残り数量と日付などを保持
+            item_requests[item].append({
+                "name": req["name"],
+                "station": req["station"],
+                "quantity": remaining_qty,
+                "date": req["date"]
+            })
+    
     return render_template('inventory.html', items=items, item_requests=item_requests)
 
 
