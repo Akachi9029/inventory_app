@@ -74,7 +74,7 @@ def add_transaction(tx_type, name, station, item_name, quantity):
     now = (datetime.utcnow() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
     transactions_sheet.append_row([tx_type, name, station, item_name, quantity, now])
 
-    transactions_sheet.append_row([tx_type, name, station, item_name, quantity, now])
+    
 
 # ---------- 物品要求関連 ----------
 def get_request_items():
