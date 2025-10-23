@@ -111,27 +111,30 @@ def inventory():
     requests = get_transactions("request")
     item_requests = {}
     for req in requests:
-        # ✅ 数量が1以上の要求だけを表示（0は非表示扱い）
+        
+# 物品要求（requestタイプ）を取得
+requests = [r for r in transactions if r["type"] == "request"]
+
+# ✅ 数量が1以上の要求だけを表示（0は非表示扱い）
 visible_requests = []
 for req in requests:
-    if int(req["quantity"]) > 0:
-        visible_requests.append(req)
-    else:
-        # 数量が0なら非表示フラグをセット（DB側にも保持）
-        db.session.execute(
-            db.text("UPDATE item_requests SET hidden = TRUE WHERE id = :id"),
-            {"id": req["id"]}
-        )
+    try:
+        if int(req["quantity"]) > 0:
+            visible_requests.append(req)
+        else:
+            # スプレッドシート上は残す（削除せず非表示）
+            print(f"要求 {req['item_name']} は数量0のため非表示")
+    except Exception as e:
+        print(f"数量チェック中のエラー: {e}")
 
+# 表示用に整形
 item_requests = {}
 for req in visible_requests:
     item_requests.setdefault(req["item_name"], []).append(req)
 
-return render_template('inventory.html', items=items, item_requests=item_requests)
+return render_template("inventory.html", items=items, item_requests=item_requests)
 
-with app.app_context():
-    db.session.execute(db.text('ALTER TABLE item_requests ADD COLUMN hidden BOOLEAN DEFAULT FALSE'))
-    db.session.commit()
+
 
 
 @app.route('/incoming', methods=['GET', 'POST'])
