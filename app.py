@@ -127,10 +127,9 @@ def inventory():
         except StopIteration:
             current_stock = 0
 
-        # 在庫に関係なく要求を表示（在庫が増えても表示は変わらない）
-        remaining_qty = max(qty - current_stock, 0)
+        # 在庫があっても、物品要求数量はそのまま表示
+        remaining_qty = max(qty - current_stock, 0)  # 在庫数を引いた残り要求数
 
-        # 物品要求が残り数量0でも表示されるようにする
         if item not in item_requests:
             item_requests[item] = []
         
@@ -138,7 +137,8 @@ def inventory():
         item_requests[item].append({
             "name": req["name"],
             "station": req["station"],
-            "quantity": remaining_qty,
+            "quantity": qty,  # 要求した数量はそのまま表示
+            "remaining_quantity": remaining_qty,  # 減算後の残り要求数量
             "date": req["date"]
         })
 
@@ -171,7 +171,6 @@ def inventory():
                             remaining = 0
 
     return render_template('inventory.html', items=items, item_requests=item_requests)
-
 
 
 @app.route('/incoming', methods=['GET', 'POST'])
