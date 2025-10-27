@@ -108,42 +108,33 @@ def index():
 
 @app.route('/inventory')
 def inventory():
-    items = get_items()
-    transactions = get_transactions()
+    items = get_items()  # 在庫情報
+    transactions = get_transactions()  # すべての取引（入庫、出庫、物品要求）
 
     # 物品要求のみ抽出
     requests = [r for r in transactions if r["type"] == "request"]
 
     # item_name ごとに残り数量をまとめる
     item_requests = {}
-    
+
+    # 入庫前の物品要求（在庫に関係なく表示）
     for req in requests:
         item = req["item_name"]
         qty = int(req["quantity"])
 
-        # 現在の在庫量を取得
-        try:
-            current_stock = next(i["quantity"] for i in items if i["name"] == item)
-        except StopIteration:
-            current_stock = 0
+        # item_requests に要求された数量を追加
+        if item not in item_requests:
+            item_requests[item] = []
 
-        # 在庫があっても、物品要求数量はそのまま表示
-        remaining_qty = max(qty - current_stock, 0)  # 在庫数を引いた残り要求数
+        item_requests[item].append({
+            "name": req["name"],
+            "station": req["station"],
+            "quantity": qty,  # 要求した数量をそのまま表示
+            "remaining_quantity": qty,  # 要求した数量がそのまま残り数量
+            "date": req["date"]
+        })
 
-        # 要求がゼロ以下の場合、表示しない
-        if remaining_qty > 0:  # 物品要求数量が残っていれば表示
-            if item not in item_requests:
-                item_requests[item] = []
-            
-            item_requests[item].append({
-                "name": req["name"],
-                "station": req["station"],
-                "quantity": qty,  # 要求した数量はそのまま表示
-                "remaining_quantity": remaining_qty,  # 減算後の残り要求数量
-                "date": req["date"]
-            })
-
-    # 入庫後、物品要求の数量を減算し、0 になったものは非表示に
+    # 入庫後、物品要求の数量を減算
     if request.method == 'POST':  # 入庫処理の場合
         for i in range(1, 11):
             item_name = request.form.get(f'item{i}')
@@ -155,23 +146,30 @@ def inventory():
                 update_item(item_name, quantity_change=qty)
 
                 # 物品要求を減算
-                requests = get_transactions("request")
-                remaining = qty
                 for req in requests:
-                    if req["item_name"] == item_name and remaining > 0:
+                    if req["item_name"] == item_name and qty > 0:
                         req_qty = int(req["quantity"])
-                        if req_qty <= remaining:
-                            remaining -= req_qty
+                        if req_qty <= qty:
+                            qty -= req_qty
                             # transactionsシート上でこのrequestを0に更新
                             cell = transactions_sheet.find(str(req_qty), in_column=5)  # quantity列を検索
                             transactions_sheet.update_cell(cell.row, cell.col, 0)
                         else:
-                            new_qty = req_qty - remaining
+                            new_qty = req_qty - qty
                             cell = transactions_sheet.find(str(req_qty), in_column=5)
                             transactions_sheet.update_cell(cell.row, cell.col, new_qty)
-                            remaining = 0
+                            qty = 0
 
-    return render_template('inventory.html', items=items, item_requests=item_requests)
+    # 表示する物品要求のみフィルタリング
+    item_requests_filtered = {}
+    for item, reqs in item_requests.items():
+        # 物品要求の残り数量が 0 より大きいものだけ表示
+        visible_requests = [req for req in reqs if req["remaining_quantity"] > 0]
+        if visible_requests:
+            item_requests_filtered[item] = visible_requests
+
+    return render_template('inventory.html', items=items, item_requests=item_requests_filtered)
+
 
 
 @app.route('/incoming', methods=['GET', 'POST'])
