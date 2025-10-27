@@ -110,7 +110,7 @@ def index():
 def inventory():
     items = get_items()
     transactions = get_transactions()
-    
+
     # 物品要求のみ抽出
     requests = [r for r in transactions if r["type"] == "request"]
     
@@ -140,8 +140,14 @@ def inventory():
                 "date": req["date"]
             })
     
-    return render_template('inventory.html', items=items, item_requests=item_requests)
+    # スプレッドシートからの削除はしないが、要求が0のものは表示しない
+    for item, reqs in item_requests.items():
+        for req in reqs:
+            if req["quantity"] == 0:
+                # 要求が0のものは表示しない
+                continue
 
+    return render_template('inventory.html', items=items, item_requests=item_requests)
 
 
 @app.route('/incoming', methods=['GET', 'POST'])
