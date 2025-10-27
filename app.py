@@ -113,10 +113,9 @@ def inventory():
 
     # 物品要求のみ抽出
     requests = [r for r in transactions if r["type"] == "request"]
-    
+
     # item_name ごとに残り数量をまとめる
     item_requests = {}
-    
     for req in requests:
         item = req["item_name"]
         qty = int(req["quantity"])
@@ -133,15 +132,15 @@ def inventory():
         if remaining_qty > 0:
             if item not in item_requests:
                 item_requests[item] = []
-            # 残り数量を保持しつつ表示する
+            # 表示用には残り数量と日付などを保持
             item_requests[item].append({
                 "name": req["name"],
                 "station": req["station"],
                 "quantity": remaining_qty,
                 "date": req["date"]
             })
-    
-    # 入庫処理後に物品要求を減算する処理
+
+    # 入庫後、物品要求の数量を減算し、0 になったものは非表示に
     if request.method == 'POST':  # 入庫処理の場合
         for i in range(1, 11):
             item_name = request.form.get(f'item{i}')
