@@ -116,23 +116,24 @@ def inventory():
     
     # item_name ごとに残り数量をまとめる
     item_requests = {}
+    
     for req in requests:
         item = req["item_name"]
         qty = int(req["quantity"])
-        
+
         # 現在の在庫量を取得
         try:
             current_stock = next(i["quantity"] for i in items if i["name"] == item)
         except StopIteration:
             current_stock = 0
-        
+
         # 残り要求数を計算（在庫が増えれば減る）
         remaining_qty = max(qty - current_stock, 0)
-        
+
         if remaining_qty > 0:
             if item not in item_requests:
                 item_requests[item] = []
-            # 表示用には残り数量と日付などを保持
+            # 残り数量を保持しつつ表示する
             item_requests[item].append({
                 "name": req["name"],
                 "station": req["station"],
@@ -140,12 +141,33 @@ def inventory():
                 "date": req["date"]
             })
     
-    # スプレッドシートからの削除はしないが、要求が0のものは表示しない
-    for item, reqs in item_requests.items():
-        for req in reqs:
-            if req["quantity"] == 0:
-                # 要求が0のものは表示しない
-                continue
+    # 入庫処理後に物品要求を減算する処理
+    if request.method == 'POST':  # 入庫処理の場合
+        for i in range(1, 11):
+            item_name = request.form.get(f'item{i}')
+            qty = request.form.get(f'qty{i}')
+            if item_name and qty:
+                qty = int(qty)
+                # 入庫処理を追加
+                add_transaction("inbound", name, station, item_name, qty)
+                update_item(item_name, quantity_change=qty)
+
+                # 物品要求を減算
+                requests = get_transactions("request")
+                remaining = qty
+                for req in requests:
+                    if req["item_name"] == item_name and remaining > 0:
+                        req_qty = int(req["quantity"])
+                        if req_qty <= remaining:
+                            remaining -= req_qty
+                            # transactionsシート上でこのrequestを0に更新
+                            cell = transactions_sheet.find(str(req_qty), in_column=5)  # quantity列を検索
+                            transactions_sheet.update_cell(cell.row, cell.col, 0)
+                        else:
+                            new_qty = req_qty - remaining
+                            cell = transactions_sheet.find(str(req_qty), in_column=5)
+                            transactions_sheet.update_cell(cell.row, cell.col, new_qty)
+                            remaining = 0
 
     return render_template('inventory.html', items=items, item_requests=item_requests)
 
