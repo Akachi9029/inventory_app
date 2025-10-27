@@ -130,17 +130,18 @@ def inventory():
         # 在庫があっても、物品要求数量はそのまま表示
         remaining_qty = max(qty - current_stock, 0)  # 在庫数を引いた残り要求数
 
-        if item not in item_requests:
-            item_requests[item] = []
-        
-        # 表示用には残り数量と日付などを保持
-        item_requests[item].append({
-            "name": req["name"],
-            "station": req["station"],
-            "quantity": qty,  # 要求した数量はそのまま表示
-            "remaining_quantity": remaining_qty,  # 減算後の残り要求数量
-            "date": req["date"]
-        })
+        # 要求がゼロ以下の場合、表示しない
+        if remaining_qty > 0:  # 物品要求数量が残っていれば表示
+            if item not in item_requests:
+                item_requests[item] = []
+            
+            item_requests[item].append({
+                "name": req["name"],
+                "station": req["station"],
+                "quantity": qty,  # 要求した数量はそのまま表示
+                "remaining_quantity": remaining_qty,  # 減算後の残り要求数量
+                "date": req["date"]
+            })
 
     # 入庫後、物品要求の数量を減算し、0 になったものは非表示に
     if request.method == 'POST':  # 入庫処理の場合
